@@ -339,20 +339,42 @@ Pong =
     },
 
     update: function(dt, leftPaddle, rightPaddle) {
-
-      pos = Pong.Helper.accelerate(this.x, this.y, this.dx, this.dy, this.accel, dt);
-
-      if ((pos.dy > 0) && (pos.y > this.maxY)) {
-        pos.y = this.maxY;
-        pos.dy = -pos.dy;
+        //determine the new position and speed of the ball
+      new_pos = Pong.Helper.ball_accelerate(this.x, this.y, this.dx, this.dy, this.accel, dt);
+        //collision detection between the ball and the top/bottom wall during the game
+      if ((new_pos.dy > 0) && (new_pos.y > this.maxY)) {
+        new_pos.y = this.maxY;
+        new_pos.dy = -new_pos.dy;
       }
-      else if ((pos.dy < 0) && (pos.y < this.minY)) {
-        pos.y = this.minY;
-        pos.dy = -pos.dy;
+      else if ((new_pos.dy < 0) && (new_pos.y < this.minY)) {
+        new_pos.y = this.minY;
+        new_pos.dy = -new_pos.dy;
       }
+        //collision detection between the ball and paddles during the game
+      var paddle = (new_pos.dx < 0) ? leftPaddle : rightPaddle;
+      var pt = Pong.Helper.ball_intercept(this, paddle, new_pos.nx, new_pos.ny);
+      if (pt) {
+          switch (pt.d) {
+            case 'left':
+            case 'right':
+                new_pos.x = pt.x;
+                new_pos.dx = -new_pos.dx;
+                break;
+            case 'top':
+            case 'bottom':
+                new_pos.y = pt.y;
+                new_pos.dy = -new_pos.dy;
+                break;
+          }
 
-      this.setpos(pos.x,  pos.y);
-      this.setdir(pos.dx, pos.dy);
+            // add or remove the spin if the ball is moving to the paddle
+           if (paddle.up)
+               new_pos.dy = new_pos.dy * (new_pos.dy < 0 ? 0.5 : 1.5);
+           else if (paddle.down)
+               new_pos.dy = new_pos.dy * (new_pos.dy > 0 ? 0.5 : 1.5);
+      }
+      this.setpos(new_pos.x,  new_pos.y);
+      this.setdir(new_pos.dx, new_pos.dy);
     },
 
     draw: function(ctx) {
@@ -367,13 +389,87 @@ Pong =
   //=============================================================================
 
   Helper: {
-
-    accelerate: function(x, y, dx, dy, accel, dt) {
-      var x2  = x + (dt * dx) + (accel * dt * dt * 0.5);
-      var y2  = y + (dt * dy) + (accel * dt * dt * 0.5);
-      var dx2 = dx + (accel * dt) * (dx > 0 ? 1 : -1);
-      var dy2 = dy + (accel * dt) * (dy > 0 ? 1 : -1);
-      return { nx: (x2-x), ny: (y2-y), x: x2, y: y2, dx: dx2, dy: dy2 };
-    }
+      //acceleration function for the ball during the game
+      ball_accelerate: function (x, y, dx, dy, accel, dt) {
+          var pos_x2 = x + (dt * dx) + (accel * dt * dt * 0.5);
+          var pos_y2 = y + (dt * dy) + (accel * dt * dt * 0.5);
+          var dir_x2 = dx + (accel * dt) * (dx > 0 ? 1 : -1);
+          var dir_y2 = dy + (accel * dt) * (dy > 0 ? 1 : -1);
+          //returns the new position to trigger the acceleration during collision,
+          //new position of the ball and new speed of the ball
+          return { nx: (pos_x2 - x), ny: (pos_y2 - y), x: pos_x2, y: pos_y2, dx: dir_x2, dy: dir_y2 };
+      },
+      //function for AI to intercept the ball based on the line segment intersection formula (Bezier Curve)
+      intercept: function (x1, y1, x2, y2, x3, y3, x4, y4, d) {
+          var denominator = ((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1));
+          if (denominator != 0) {
+              //find and check whether the first intersection point value is within the first line segment (t)
+              var t = (((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3))) / denominator;
+              //if the result of t is around 0 to 1
+              //continue to find and check the second intersection point
+              if ((t >= 0) && (t <= 1)) {
+                  //find and check whether the second intersection point is within the second line segment (u)
+                  var u = (((x2 - x1) * (y1 - y3)) - ((y2 - y1) * (x1 - x3))) / denominator;
+                  //if the result of u is around 0 to 1
+                  //find the intersection point (x, y) of point t (P(t))
+                  //return the intersection point (x, y) and the direction of the ball
+                  if ((u >= 0) && (u <= 1)) {
+                      var x = x1 + (t * (x2 - x1));
+                      var y = y1 + (t * (y2 - y1));
+                      return { x: x, y: y, d: d };
+                  }
+              }
+          }
+          return null;
+      },
+      //function to intercept the ball movement (collision detection between the ball and paddle)
+      ball_intercept: function (ball, rect, nx, ny) {
+          var ball_pos;
+          if (nx < 0) {
+              //checks whether the player 2 left edge paddle's position will intercept the ball
+              //when the ball moves to the right direction (approaching paddle 2)
+              ball_pos = Pong.Helper.intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+                  rect.right + ball.radius,
+                  rect.top - ball.radius,
+                  rect.right + ball.radius,
+                  rect.bottom + ball.radius,
+                  "right");
+          }
+          else if (nx > 0) {
+              //checks whether the player 1 right edge paddle's position will intercept the ball
+              //when the ball moves to the left deirection (approaching paddle 1)
+              ball_pos = Pong.Helper.intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+                  rect.left - ball.radius,
+                  rect.top - ball.radius,
+                  rect.left - ball.radius,
+                  rect.bottom + ball.radius,
+                  "left");
+          }
+          //if the right or left edge of the paddle did not touch the ball
+          //consider the top and bottom edge of the two paddles before the ball reaches the goal
+          if (!ball_pos) {
+              if (ny < 0) {
+                  //checks whether the bottom edge of either one of the paddle intercepts the ball
+                  //when the ball approaches one of the paddle
+                  ball_pos = Pong.Helper.intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+                      rect.left - ball.radius,
+                      rect.bottom + ball.radius,
+                      rect.right + ball.radius,
+                      rect.bottom + ball.radius,
+                      "bottom");
+              }
+              else if (ny > 0) {
+                  //checks whether the top edge of either one of the paddles intercepts the ball
+                  //when the ball approaches one of the paddles
+                  ball_pos = Pong.Helper.intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+                      rect.left - ball.radius,
+                      rect.top - ball.radius,
+                      rect.right + ball.radius,
+                      rect.top - ball.radius,
+                      "top");
+              }
+          }
+          return ball_pos;
+      }
   }
 };
