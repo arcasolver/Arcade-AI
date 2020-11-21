@@ -3,9 +3,83 @@
     <head>
         <!-- METADATA AND INFORMATION GOES HERE -->
         <title>Pong with AI</title>
+        <meta http-equiv="Content-Type" content="text/html"; charset="utf-8"/>
+        <link href="css/pong.css" media="screen, print" rel="stylesheet" type="text/css" /> 
     </head>
 
     <body>
         <!-- MAIN GAME GOES HERE -->
+        <div id="sidebar">
+            <h1>Welcome to Pong!</h1>
+
+            <div class='desc'>
+                <p>Game Instructions:</p>
+                <p>
+                    Press <b>1</b> for singleplayer mode.<br>
+                    Press <b>2</b> for two player mode.<br>
+                    Press <b>0</b> for AI autoplay mode.
+                </p>
+                <p>
+                    P1 keys: <b>Q</b> (up) and <b>A</b> (down) keys.<br>
+                    P2 keys: <b>P</b> (up) and <b>L</b> (down) keys.
+                </p>
+                <p>
+                    Press <b>Esc</b> to quit the game.
+                </p>
+            </div>
+
+            <div class='settings'>
+                <label for='sfx'>Turn Sound On/Off: </label>
+                <input type='checkbox' id='sfx'>
+            </div>
+
+            <div class='settings'>
+                <label for='stat'>Show Statistics: </label>
+                <input type='checkbox' id='stat' checked>
+            </div>
+
+            <div class='settings'>
+                <label for='trail'>Display ball trails: </label>
+                <input type='checkbox' id='trail'>
+            </div>
+
+            <div class='settings'>
+                <label for='predoverlay'>Display AI Predictions Overlay: </label>
+                <input type='checkbox' id='predoverlay'>
+            </div>
+
+        </div>
+
+        <canvas id="game">
+            <div id="unsupported">
+            Sorry, your browser does not support the &lt;canvas&gt; element which is erquired by this game.
+            </div>
+        </canvas>
+
+        <script src="game.js" type="text/javascript"></script> 
+        <script src="pong.js" type="text/javascript"></script>
+        <script type="text/javascript">
+        Game.ready(function() {
+
+            // var size        = document.getElementById('size');
+            var sfx = document.getElementById('sfx');
+            var stat = document.getElementById('stat');
+            var trail = document.getElementById('trail');
+            var predoverlay = document.getElementById('predoverlay');
+
+            var pong = Game.start('game', Pong, {
+                sound: sfx.checked,
+                stats: stat.checked,
+                footprints: trail.checked,
+                predictions: predoverlay.checked
+            });
+
+            Game.addEvent(sound,       'change', function() { pong.enableSound(sfx.checked);             });
+            Game.addEvent(stats,       'change', function() { pong.showStats(stat.checked);              });
+            Game.addEvent(footprints,  'change', function() { pong.showFootprints(trail.checked);        });
+            Game.addEvent(predictions, 'change', function() { pong.showPredictions(predoverlay.checked); });
+
+        });
+        </script>
     </body>
 </html>

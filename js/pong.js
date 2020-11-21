@@ -1,0 +1,379 @@
+Pong = 
+{
+    Defaults:
+    {
+        width: 640,
+        height: 480,
+        wallWidth: 20,
+        paddleWidth: 12,
+        paddleHeight: 64,
+        paddleSpeed: 3,
+        ballSpeed: 4,
+        ballAcceleration: 8,
+        ballRad: 7,
+        stats: true
+    },
+
+    Colors: 
+    {
+        courtWalls: 'white',
+        ball: 'white',
+        text: 'white'
+    },
+
+    Assets: /**/
+    [
+        "img/press1.png",
+        "img/press2.png",
+        "img/winner.png"
+    ],
+
+    /* Pong funcitons */
+    initialize: function(runner, cfg) /**/
+    {
+        Game.loadImages(Pong.Assets, function(assets) 
+        {
+            this.cfg         = cfg;
+            this.runner      = runner;
+            this.width       = runner.width;
+            this.height      = runner.height;
+            this.assets      = assets;
+            this.isPlaying   = false; //
+            this.score       = [0, 0]; //
+            this.menu        = Object.construct(Pong.Menu,   this);
+            this.court       = Object.construct(Pong.Court,  this);
+            this.leftPaddle  = Object.construct(Pong.Paddle, this);
+            this.rightPaddle = Object.construct(Pong.Paddle, this, true);
+            this.ball        = Object.construct(Pong.Ball,   this);
+            this.runner.start();
+        }.bind(this));
+    },
+
+    startAI: function() { this.start(0); }, //
+    startOne: function() { this.start(1); }, //
+    startTwo: function() { this.start(2); }, //
+
+    start: function(pNum) /**/
+    {
+        if (!this.isPlaying)
+        {
+            this.score = [0, 0];
+            this.isPlaying = true;
+            this.ball.reset();
+        }
+    },
+
+    stop: function(dialog) /**/
+    {
+        if (this.isPlaying)
+            if (!dialog || this.runner.confirm('Quit game?'))
+                this.isPlaying = false;
+    },
+
+    level: function(player)
+    {
+        return 8 + (this.score[player] - this.score[player ? 0 : 1]);
+    },
+
+    goal: function(player) /**/
+    {
+        this.score[player] += 1;
+        if (this.score[player] == 1)
+        {
+            this.menu.declareWinner(player);
+            this.stop();
+        }
+        else
+        {
+            this.ball.reset(player);
+            /* this.leftPaddle.setLevel(this.level(0));
+            this.rightPaddle.setLevel(this.level(1)); */
+        }
+    },
+
+    update: function(dt) /**/
+    {
+        this.leftPaddle.update(dt, this.ball);
+        this.rightPaddle.update(dt, this.ball);
+
+        if (this.isPlaying)
+        {
+            var dx = this.ball.dx;
+            var dy = this.ball.dy;
+            
+            this.ball.update(dt, this.leftPaddle, this.rightPaddle);
+
+            if (this.ball.left > this.width)
+                this.goal(0);
+            else if (this.ball.right < 0)
+                this.goal(1);
+        }
+    },
+
+    draw: function(canvas) /**/
+    {
+        this.court.draw(canvas, this.score[0], this.score[1]);
+        this.leftPaddle.draw(canvas);
+        this.rightPaddle.draw(canvas);
+        this.isPlaying ? this.ball.draw(canvas) : this.menu.draw(canvas);
+    },
+
+    onkeydown: function(key) /**/
+    {
+        switch(key)
+        {
+            case Game.KEY.ZERO: this.startAI(); break; //
+            case Game.KEY.ONE: this.startOne(); break; //
+            case Game.KEY.TWO: this.startTwo(); break; //
+            case Game.KEY.ESC: this.stop(true); break;
+            case Game.KEY.Q: this.leftPaddle.moveUp(); break;
+            case Game.KEY.A: this.leftPaddle.moveDown(); break;
+            case Game.KEY.P: this.rightPaddle.moveUp(); break;
+            case Game.KEY.L: this.rightPaddle.moveDown(); break;
+        }
+    },
+
+    onkeyup: function(keyCode) /**/
+    {
+        switch(keyCode) 
+        {
+            case Game.KEY.Q: this.leftPaddle.stopMovingUp(); break;
+            case Game.KEY.A: this.leftPaddle.stopMovingDown(); break;
+            case Game.KEY.P: this.rightPaddle.stopMovingUp(); break;
+            case Game.KEY.L: this.rightPaddle.stopMovingDown(); break;
+        }
+    },
+
+    Menu: /**/
+    {
+        initialize: function(pong) 
+        {
+            var leftMenu = pong.assets["img/press1.png"];
+            var rightMenu = pong.assets["img/press2.png"];
+            var winText = pong.assets["img/winner.png"];
+            this.leftMenu = { assets: leftMenu, x: 10, y: pong.cfg.wallWidth };
+            this.rightMenu = { assets: rightMenu, x: (pong.width - rightMenu.width - 10), y: pong.cfg.wallWidth };
+            this.leftWin = { assets: winText, x: (pong.width/2) - winText.width - pong.cfg.wallWidth, y: 6 * pong.cfg.wallWidth };
+            this.rightWin = { assets: winText, x: (pong.width/2) + pong.cfg.wallWidth, y: 6 * pong.cfg.wallWidth };
+        },
+
+        declareWinner: function(pNum) { this.winner = pNum; },
+
+        draw: function(canvas) 
+        {
+            canvas.drawImage(this.leftMenu.assets, this.leftMenu.x, this.leftMenu.y);
+            canvas.drawImage(this.rightMenu.assets, this.rightMenu.x, this.rightMenu.y);
+            if (this.winner == 0)
+                canvas.drawImage(this.leftWin.assets, this.leftWin.x, this.leftWin.y);
+            else if (this.winner == 1)
+                canvas.drawImage(this.rightWin.assets, this.rightWin.x, this.rightWin.y);
+        }
+    },
+
+    /* Pong game objects */
+    // Game court - Including the score panel
+    Court:
+    {
+        initialize: function(pong)
+        {
+            // Global menu properties
+            var x = pong.width;
+            var y = pong.height;
+            var th = pong.cfg.wallWidth;
+
+            // Walls properties
+            this.th = th;
+            this.courtWalls = [];
+            this.courtWalls.push({x: 0, y: 0, width: x, height: th}) // Draw top walls
+            this.courtWalls.push({x: 0, y: y-th, width: x, height: th}) // Draw bottom walls
+            
+            var maxLen = (y/(th*2));
+
+            for(var i = 0 ; i < maxLen ; i++) // draw dashed halfway line
+            {
+                this.courtWalls.push({x: (x/2) - (th/2), y: (th/2) + (th*2*i), width: th, height: th});
+            }
+            
+            // Score panel properties
+            var scoreX = 3*th;
+            var scoreY = 4*th;
+            var scoreModifier = 0.5;
+            this.leftScore = {x: scoreModifier + x/2 - 1.5*th - scoreX, y: 2*th, widht: scoreX, height: scoreY};
+            this.rightScore = {x: scoreModifier + x/2 - 1.5*th, y: 2*th, widht: scoreX, height: scoreY};
+        },
+
+        // Seven segment binary table
+        CharacterMap: /**/
+        [
+            [1, 1, 1, 0, 1, 1, 1], // 0
+            [0, 0, 1, 0, 0, 1, 0], // 1
+            [1, 0, 1, 1, 1, 0, 1], // 2
+            [1, 0, 1, 1, 0, 1, 1], // 3
+            [0, 1, 1, 1, 0, 1, 0], // 4
+            [1, 1, 0, 1, 0, 1, 1], // 5
+            [1, 1, 0, 1, 1, 1, 1], // 6
+            [1, 0, 1, 0, 0, 1, 0], // 7
+            [1, 1, 1, 1, 1, 1, 1], // 8
+            [1, 1, 1, 1, 0, 1, 0]  // 9
+        ],
+
+        sevenSegment: function(canvas, numval, x, y, width, height)
+        {
+            canvas.fillStyle = Pong.Colors.text;
+            var digitWidth = digitHeight = this.th*4/5;
+            var segments = Pong.Court.CharacterMap[numval];
+
+            if (segments[0])
+                canvas.fillRect(x, y, width, digitHeight);
+            if (segments[1])
+                canvas.fillRect(x, y, digitWidth, height/2);
+            if (segments[2])
+                canvas.fillRect(x + width - digitWidth, y, digitWidth, height/2);
+            if (segments[3])
+                canvas.fillRect(x, y + height/2 - digitHeight/2, width, digitHeight);
+            if (segments[4])
+                canvas.fillRect(x, y + height/2, digitWidth, height/2);
+            if (segments[5])
+                canvas.fillRect(x + width - digitWidth, y + height/2, digitWidth, height/2);
+            if (segments[6])
+                canvas.fillRect(x, y + height - digitHeight, width, digitHeight);
+        },
+
+        draw: function(canvas, p1score, p2score)
+        {
+            canvas.fillStyle = Pong.Colors.courtWalls;
+            for (var i = 0; i < this.courtWalls.length; i++)
+                canvas.fillRect(this.courtWalls[i].x, this.courtWalls[i].y, this.courtWalls[i].width, this.courtWalls[i].height);
+            this.sevenSegment(canvas, p1score, this.leftScore.x, this.leftScore.y, this.leftScore.width, this.leftScore.height);
+            this.sevenSegment(canvas, p2score, this.rightScore.x, this.rightScore.y, this.rightScore.width, this.rightScore.height);
+        }
+    },
+
+    /* Original Code Starting Below */
+
+    Paddle: {
+
+    initialize: function(pong, rhs) {
+      this.pong   = pong;
+      this.width  = pong.cfg.paddleWidth;
+      this.height = pong.cfg.paddleHeight;
+      this.minY   = pong.cfg.wallWidth;
+      this.maxY   = pong.height - pong.cfg.wallWidth - this.height;
+      this.speed  = (this.maxY - this.minY) / pong.cfg.paddleSpeed;
+      this.setpos(rhs ? pong.width - this.width : 0, this.minY + (this.maxY - this.minY)/2);
+      this.setdir(0);
+    },
+
+    setpos: function(x, y) {
+      this.x      = x;
+      this.y      = y;
+      this.left   = this.x;
+      this.right  = this.left + this.width;
+      this.top    = this.y;
+      this.bottom = this.y + this.height;
+    },
+
+    setdir: function(dy) {
+      this.up   = (dy < 0 ? -dy : 0);
+      this.down = (dy > 0 ?  dy : 0);
+    },
+
+    update: function(dt, ball) {
+      var amount = this.down - this.up;
+      if (amount != 0) {
+        var y = this.y + (amount * dt * this.speed);
+        if (y < this.minY)
+          y = this.minY;
+        else if (y > this.maxY)
+          y = this.maxY;
+        this.setpos(this.x, y);
+      }
+    },
+
+    draw: function(ctx) {
+      ctx.fillStyle = Pong.Colors.walls;
+      ctx.fillRect(this.x, this.y, this.width, this.height);
+    },
+
+    moveUp:         function() { this.up   = 1; },
+    moveDown:       function() { this.down = 1; },
+    stopMovingUp:   function() { this.up   = 0; },
+    stopMovingDown: function() { this.down = 0; }
+
+  },
+
+  //=============================================================================
+  // BALL
+  //=============================================================================
+
+  Ball: {
+
+    initialize: function(pong) {
+      this.pong    = pong;
+      this.radius  = pong.cfg.ballRadius;
+      this.minX    = this.radius;
+      this.maxX    = pong.width - this.radius;
+      this.minY    = pong.cfg.wallWidth + this.radius;
+      this.maxY    = pong.height - pong.cfg.wallWidth - this.radius;
+      this.speed   = (this.maxX - this.minX) / pong.cfg.ballSpeed;
+      this.accel   = pong.cfg.ballAccel;
+    },
+
+    reset: function(playerNo) {
+      this.setpos(playerNo == 1 ?   this.maxX : this.minX,  Game.random(this.minY, this.maxY));
+      this.setdir(playerNo == 1 ? -this.speed : this.speed, this.speed);
+    },
+
+    setpos: function(x, y) {
+      this.x      = x;
+      this.y      = y;
+      this.left   = this.x - this.radius;
+      this.top    = this.y - this.radius;
+      this.right  = this.x + this.radius;
+      this.bottom = this.y + this.radius;
+    },
+
+    setdir: function(dx, dy) {
+      this.dx = dx;
+      this.dy = dy;
+    },
+
+    update: function(dt, leftPaddle, rightPaddle) {
+
+      pos = Pong.Helper.accelerate(this.x, this.y, this.dx, this.dy, this.accel, dt);
+
+      if ((pos.dy > 0) && (pos.y > this.maxY)) {
+        pos.y = this.maxY;
+        pos.dy = -pos.dy;
+      }
+      else if ((pos.dy < 0) && (pos.y < this.minY)) {
+        pos.y = this.minY;
+        pos.dy = -pos.dy;
+      }
+
+      this.setpos(pos.x,  pos.y);
+      this.setdir(pos.dx, pos.dy);
+    },
+
+    draw: function(ctx) {
+      var w = h = this.radius * 2;
+      ctx.fillStyle = Pong.Colors.ball;
+      ctx.fillRect(this.x - this.radius, this.y - this.radius, w, h);
+    }
+  },
+
+  //=============================================================================
+  // HELPER
+  //=============================================================================
+
+  Helper: {
+
+    accelerate: function(x, y, dx, dy, accel, dt) {
+      var x2  = x + (dt * dx) + (accel * dt * dt * 0.5);
+      var y2  = y + (dt * dy) + (accel * dt * dt * 0.5);
+      var dx2 = dx + (accel * dt) * (dx > 0 ? 1 : -1);
+      var dy2 = dy + (accel * dt) * (dy > 0 ? 1 : -1);
+      return { nx: (x2-x), ny: (y2-y), x: x2, y: y2, dx: dx2, dy: dy2 };
+    }
+  }
+};
