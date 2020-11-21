@@ -249,8 +249,7 @@ Pong =
         }
     },
 
-    /* Original Code Starting Below */
-
+    //Game Paddle - To hit the ball in the Pong game
     Paddle: {
 
     initialize: function(pong, rhs) {
@@ -290,9 +289,9 @@ Pong =
       }
     },
 
-    draw: function(ctx) {
-      ctx.fillStyle = Pong.Colors.walls;
-      ctx.fillRect(this.x, this.y, this.width, this.height);
+    draw: function(canvas) {
+      canvas.fillStyle = Pong.Colors.walls;
+      canvas.fillRect(this.x, this.y, this.width, this.height);
     },
 
     moveUp:         function() { this.up   = 1; },
@@ -302,28 +301,31 @@ Pong =
 
   },
 
-  //=============================================================================
-  // BALL
-  //=============================================================================
-
+  //Game Ball - Ball object in the Pong game that is hit by the paddle
   Ball: {
-
+    /*Ball Functions*/
+    //initialization function for the ball
     initialize: function(pong) {
       this.pong    = pong;
-      this.radius  = pong.cfg.ballRadius;
+      this.radius  = pong.cfg.ballRad;//determine the radius of the ball from the ball radius' data in the configuration class
       this.minX    = this.radius;
       this.maxX    = pong.width - this.radius;
       this.minY    = pong.cfg.wallWidth + this.radius;
       this.maxY    = pong.height - pong.cfg.wallWidth - this.radius;
       this.speed   = (this.maxX - this.minX) / pong.cfg.ballSpeed;
-      this.accel   = pong.cfg.ballAccel;
+      this.accel   = pong.cfg.ballAcceleration;
     },
 
-    reset: function(playerNo) {
-      this.setpos(playerNo == 1 ?   this.maxX : this.minX,  Game.random(this.minY, this.maxY));
-      this.setdir(playerNo == 1 ? -this.speed : this.speed, this.speed);
+    //reset the ball speed and position during the beginning of the game or when one of the paddle is able to score a point
+    //in the beginning, the ball will always starts at left side player (player = 0) and the direction is approaching right side player (player = 1)
+    //if the player in the right hand side scores a ball, the ball will start in the right position
+    reset: function(player) {
+      this.footprints = [];
+      this.setpos(player == 1 ?   this.maxX : this.minX,  Game.random(this.minY, this.maxY));
+      this.setdir(player == 1 ? -this.speed : this.speed, this.speed);
     },
 
+    //set the ball position during the game
     setpos: function(x, y) {
       this.x      = x;
       this.y      = y;
@@ -333,11 +335,33 @@ Pong =
       this.bottom = this.y + this.radius;
     },
 
-    setdir: function(dx, dy) {
+    //set the ball direction/movements
+      setdir: function (dx, dy) {
+      this.dxChanged = ((this.dx < 0) != (dx < 0));//horizontal direction change on the ball
+      this.dyChanged = ((this.dy < 0) != (dy < 0));//vertical direction change on the ball
       this.dx = dx;
       this.dy = dy;
     },
 
+    //function for ball's footprints
+    footprint: function () {
+        if (this.pong.cfg.footprint) {
+            if (!this.footprintCount || this.dxChanged || this.dyChanged) {
+                //inserting the coordinate of the ball to the footprint
+                this.footprints.push({ x: this.x, y: this.y });
+                //if the footprint length has reached 300, remove the footprint one by one
+                if (this.footprints.length > 300)
+                    this.footprints.shift();
+                //counter to print the footprints
+                this.footprintCount = 10;
+            }
+            //if the footprint counter is starting, reduce the counter until 0 to produce new footprint
+            else {
+                this.footprintCount--;
+            }
+        }
+    },
+    //updating the ball status (new position, speed, collision detection and direction)
     update: function(dt, leftPaddle, rightPaddle) {
         //determine the new position and speed of the ball
       new_pos = Pong.Helper.ball_accelerate(this.x, this.y, this.dx, this.dy, this.accel, dt);
@@ -352,7 +376,8 @@ Pong =
       }
         //collision detection between the ball and paddles during the game
       var paddle = (new_pos.dx < 0) ? leftPaddle : rightPaddle;
-      var pt = Pong.Helper.ball_intercept(this, paddle, new_pos.nx, new_pos.ny);
+        var pt = Pong.Helper.ball_intercept(this, paddle, new_pos.nx, new_pos.ny);
+
       if (pt) {
           switch (pt.d) {
             case 'left':
@@ -373,14 +398,24 @@ Pong =
            else if (paddle.down)
                new_pos.dy = new_pos.dy * (new_pos.dy > 0 ? 0.5 : 1.5);
       }
+      //set the new position and direction for the ball after collision with the paddle/wall
       this.setpos(new_pos.x,  new_pos.y);
       this.setdir(new_pos.dx, new_pos.dy);
+      this.footprint();
     },
-
-    draw: function(ctx) {
-      var w = h = this.radius * 2;
-      ctx.fillStyle = Pong.Colors.ball;
-      ctx.fillRect(this.x - this.radius, this.y - this.radius, w, h);
+    
+    draw: function(canvas) {
+        var w = h = this.radius * 2;
+        canvas.fillStyle = Pong.Colors.ball;
+        canvas.fillRect(this.x - this.radius, this.y - this.radius, w, h);
+        //drawing the footprints of the ball
+        if (this.pong.cfg.footprints) {
+            var maxfootprint = this.footprints.length;
+            canvas.strokeStyle = Pong.Colors.footprint;
+            for (var i = 0; i < maxfootprint; i++) {
+                canvas.strokeRect(this.footprints[i].x - this.radius, this.footprints[i].y - this.radius, w, h);
+            }
+        }
     }
   },
 
