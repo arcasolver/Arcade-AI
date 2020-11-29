@@ -251,7 +251,7 @@ Pong =
 
     //Game Paddle - To hit the ball in the Pong game
     Paddle: {
-
+    //initialization for the paddle
     initialize: function(pong, rhs) {
       this.pong   = pong;
       this.width  = pong.cfg.paddleWidth;
@@ -263,6 +263,7 @@ Pong =
       this.setdir(0);
     },
 
+    //setting the paddle position
     setpos: function(x, y) {
       this.x      = x;
       this.y      = y;
@@ -272,26 +273,139 @@ Pong =
       this.bottom = this.y + this.height;
     },
 
+    //setting the paddle movement directions
+    //since the paddle only moves up and down, the coordinates that will be changed is only y
     setdir: function(dy) {
       this.up   = (dy < 0 ? -dy : 0);
       this.down = (dy > 0 ?  dy : 0);
     },
 
-    update: function(dt, ball) {
-      var amount = this.down - this.up;
-      if (amount != 0) {
-        var y = this.y + (amount * dt * this.speed);
-        if (y < this.minY)
-          y = this.minY;
-        else if (y > this.maxY)
-          y = this.maxY;
-        this.setpos(this.x, y);
-      }
+    //set the AI when there is a vacancy in the player (1P or 0P)
+    setAI: function (on, level) {
+        //if the ai feature is turned on or only 1 player
+        //the ai level will start with the initialized difficulty level
+        if (on && !this.auto) {
+            this.auto = true;
+            this.setLevel(level);
+        }
+        else if (!on && this.auto) {
+            this.auto = false;
+            this.setdir(0);//set the paddle position to the beginning position (immobile)
+        }
     },
 
+    //set AI levels when the CPU starts to run
+    setLevel: function (level) {
+        if (this.auto)
+            this.level = Pong.Levels[level];
+    },
+
+    //updating the paddle status when the paddle is moving
+    //set the new paddle position
+    update: function (dt, ball) {
+        if (this.auto)
+            this.paddleAI(dt, ball);
+
+        var paddleMovement = this.down - this.up;
+        if (paddleMovement != 0) {
+        var new_y = this.y + (paddleMovement * dt * this.speed);//new coordinate for the paddle
+        if (new_y < this.minY)
+          new_y = this.minY;
+        else if (new_y > this.maxY)
+          new_y = this.maxY;
+        this.setpos(this.x, new_y);
+        }
+    },
+
+    //set the AI to the CPU player
+    paddleAI: function (dt, ball) {
+        //when the ball is moving away from the CPU
+        //CPU paddle stops moving up and down
+        if (((ball.x < this.left) && (ball.dx < 0)) || ((ball.x > this.right) && (ball.dx > 0))) {
+            this.stopMovingUp();
+            this.stopMovingDown();
+            return;
+        }
+
+        //CPU predicts the ball movement
+        this.predict(ball, dt);
+
+        //if the CPU has done its prediction, the CPU move to the predicted position
+        if (this.prediction) {
+            //if the prediction is too low than the exact position
+            //CPU moves the paddle up
+            if (this.prediction.y < (this.top + (this.height / 2) - 10)) {
+                this.stopMovingDown();
+                this.moveUp();
+            }
+            //if the prediction is too high than the exact position
+            //CPU moves the paddle down
+            else if (this.prediction.y > (this.bottom + (this.height / 2) + 10)) {
+                this.stopMovingUp();
+                this.moveDown();
+            }
+            //if the prediction is almost exact in the correct position
+            //CPU stops moving
+            else {
+                this.stopMovingUp();
+                this.stopMovingDown();
+            }
+        }
+    },
+
+    //prediction function for the CPU
+    predict: function (ball, dt) {
+        //re-predict the ball position when the ball has changed its direction, or it has not predict the position for some interval of time
+        if (this.prediction && ((this.prediction.dx * ball.dx) > 0) && ((this.prediction.dy * ball.dy) > 0) && (this.prediction.last < this.level.aiReaction)) {
+            this.prediction.last += dt;
+            return;
+        }
+        //checks whether the paddle is intercepting the ball
+        var pt = Pong.Helper.ball_intercept(ball, { left: this.left, right: this.right, top: -10000, bottom: 10000 }, ball.dx * 10, ball.dy * 10);
+        if (pt) {
+            //calculating the intercept of the ball in the court
+            var top = this.minY + ball.radius;
+            var bottom = this.maxY + this.height - ball.radius;
+
+            //repeatedly predict until the ball has reached the paddle's side
+            while ((pt.y < top) || (pt.y > bottom)) {
+                if (pt.y < top) {
+                    pt.y = top + (top - pt.y);//bounce the prediction to the top
+                }
+                else if (pt.y > bottom) {
+                    pt.y = top + (bottom - top) - (pt.y - bottom)//bounce the prediction to the bottom
+                }
+            }
+            this.prediction = pt;
+        }
+        else {
+            this.prediction = null;
+        }
+
+        //add the AI error movement to make the impression that the AI is guessing the ball position
+        if (this.prediction) {
+            this.prediction.last = 0;
+            this.prediction.dx = ball.dx;
+            this.prediction.dy = ball.dy;
+            this.prediction.radius = ball.radius;
+            this.prediction.exactX = this.prediction.x;
+            this.prediction.exactY = this.prediction.y;
+            var ball_closeness = (ball.dx < 0 ? ball.x - this.right : this.left - ball.x) / this.pong.width;
+            var errorGuess = this.level.aiError * ball_closeness;
+            this.prediction.y = this.prediction.y + Game.random(-errorGuess, errorGuess);
+        }
+    },
+
+    //draw the paddle object
     draw: function(canvas) {
       canvas.fillStyle = Pong.Colors.walls;
-      canvas.fillRect(this.x, this.y, this.width, this.height);
+        canvas.fillRect(this.x, this.y, this.width, this.height);
+        if (this.prediction && this.pong.cfg.predictions) {
+            canvas.strokeStyle = Pong.Colors.exact;
+            canvas.strokeRect(this.prediction.x - this.prediction.radius, this.prediction.exactY - this.prediction.radius, this.prediction.radius * 2, this.prediction.radius * 2);
+            canvas.strokeStyle = Pong.Colors.guess;
+            canvas.strokeRect(this.prediction.x - this.prediction.radius, this.prediction.y - this.prediction.radius, this.prediction.radius * 2, this.prediction.radius * 2);
+        }
     },
 
     moveUp:         function() { this.up   = 1; },
@@ -303,7 +417,7 @@ Pong =
 
   //Game Ball - Ball object in the Pong game that is hit by the paddle
   Ball: {
-    /*Ball Functions*/
+    /*Ball Class*/
     //initialization function for the ball
     initialize: function(pong) {
       this.pong    = pong;
@@ -336,28 +450,28 @@ Pong =
     },
 
     //set the ball direction/movements
-      setdir: function (dx, dy) {
-      this.dxChanged = ((this.dx < 0) != (dx < 0));//horizontal direction change on the ball
-      this.dyChanged = ((this.dy < 0) != (dy < 0));//vertical direction change on the ball
-      this.dx = dx;
-      this.dy = dy;
+    setdir: function (dx, dy) {
+    this.dxChanged = ((this.dx < 0) != (dx < 0));//horizontal direction change on the ball
+    this.dyChanged = ((this.dy < 0) != (dy < 0));//vertical direction change on the ball
+    this.dx = dx;
+    this.dy = dy;
     },
 
-    //function for ball's footprints
-    footprint: function () {
-        if (this.pong.cfg.footprint) {
-            if (!this.footprintCount || this.dxChanged || this.dyChanged) {
+    //function for ball's trails
+    trail: function () {
+        if (this.pong.cfg.footprints) {
+            if (!this.trailCount || this.dxChanged || this.dyChanged) {
                 //inserting the coordinate of the ball to the footprint
                 this.footprints.push({ x: this.x, y: this.y });
                 //if the footprint length has reached 300, remove the footprint one by one
                 if (this.footprints.length > 300)
                     this.footprints.shift();
                 //counter to print the footprints
-                this.footprintCount = 10;
+                this.trailCount = 10;
             }
             //if the footprint counter is starting, reduce the counter until 0 to produce new footprint
             else {
-                this.footprintCount--;
+                this.trailCount--;
             }
         }
     },
@@ -376,7 +490,7 @@ Pong =
       }
         //collision detection between the ball and paddles during the game
       var paddle = (new_pos.dx < 0) ? leftPaddle : rightPaddle;
-        var pt = Pong.Helper.ball_intercept(this, paddle, new_pos.nx, new_pos.ny);
+      var pt = Pong.Helper.ball_intercept(this, paddle, new_pos.nx, new_pos.ny);//determining the ball position
 
       if (pt) {
           switch (pt.d) {
@@ -401,7 +515,7 @@ Pong =
       //set the new position and direction for the ball after collision with the paddle/wall
       this.setpos(new_pos.x,  new_pos.y);
       this.setdir(new_pos.dx, new_pos.dy);
-      this.footprint();
+      this.trail();
     },
     
     draw: function(canvas) {
@@ -410,8 +524,8 @@ Pong =
         canvas.fillRect(this.x - this.radius, this.y - this.radius, w, h);
         //drawing the footprints of the ball
         if (this.pong.cfg.footprints) {
-            var maxfootprint = this.footprints.length;
-            canvas.strokeStyle = Pong.Colors.footprint;
+            var maxtrail = this.footprints.length;
+            canvas.strokeStyle = Pong.Colors.trail;
             for (var i = 0; i < maxfootprint; i++) {
                 canvas.strokeRect(this.footprints[i].x - this.radius, this.footprints[i].y - this.radius, w, h);
             }
