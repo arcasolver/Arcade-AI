@@ -1,8 +1,14 @@
-body { background-color: black; color: #AAA; font-size: 12pt; padding: 1em; }
+body {
+  overflow: hidden;
+  color: #fff; 
+  font-size: 14pt;
+  font-family: 'Roboto', sans-serif;
+  padding: 2em;
+}
 
 #unsupported { border: 1px solid yellow; color: black; background-color: #FFFFAD; padding: 2em; margin: 1em; display: inline-block; }
 
-#sidebar                        { width: 18em; height: 40em; float: left; font-size: 0.825em; background-color: #333; border: 1px solid white; padding: 1em;  }
+#sidebar                        { width: 18em; float: left; font-size: 0.825em; background-color: #333; opacity: 0.9; border: 1px solid white; padding: 1em;  }
 #sidebar h2                     { color: white; text-align: center; margin: 0; }
 #sidebar .parts                 { padding-left: 1em; list-style-type: none; margin-bottom: 2em; text-align: right; }
 #sidebar .parts li a            { color: white; text-decoration: none; }
@@ -20,14 +26,9 @@ body { background-color: black; color: #AAA; font-size: 12pt; padding: 1em; }
 #sidebar .description           { margin-bottom: 2em; }
 #sidebar .description b         { font-weight: normal; color: #FFF; }
 
-
 @media screen and (min-width: 0px) {
   #sidebar { display: none; }
-  #game    { display: block; width: 480px; height: 360px; margin: 0 auto; }
-}
-
-@media screen and (min-width: 800px) {
-  #game    { width: 640px; height: 480px; }
+  #game    { display: block; width: 640px; height: 480px; margin: 0 auto; }
 }
 
 @media screen and (min-width: 1000px) {
@@ -37,8 +38,10 @@ body { background-color: black; color: #AAA; font-size: 12pt; padding: 1em; }
 
 @media screen and (min-width: 1200px) {
   #game    { width: 800px; height: 600px; }
+  #sidebar { height: 568px; }
 }
 
 @media screen and (min-width: 1600px) {
-  #game    { width: 1024px; height: 768px; }
+  #game    { width: 1200px; height: 900px; }
+  #sidebar { height: 868px; }
 }

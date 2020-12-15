@@ -4,7 +4,7 @@ Pong =
     {
         width: 640,
         height: 480,
-        wallWidth: 20,
+        wallWidth: 10,
         paddleWidth: 12,
         paddleHeight: 64,
         paddleSpeed: 2,
@@ -19,7 +19,7 @@ Pong =
         courtWalls: 'white',
         ball: 'yellow',
         text: 'white',
-        trail: 'grey',
+        trail: 'white',
         guess: 'magenta',
         exact: 'lime'
     },
@@ -112,7 +112,7 @@ Pong =
     {
         this.score[player] += 1;
         this.sfx.goal();
-        if (this.score[player] == 1)
+        if (this.score[player] == this.cfg.winpoint)
         {
             this.menu.declareWinner(player);
             this.stop();
@@ -141,7 +141,7 @@ Pong =
             if (this.ball.dx < 0 && dx > 0)
                 this.sfx.ping();
             else if (this.ball.dx > 0 && dx < 0)
-                this.sfx.pong();
+                this.sfx.ping();
             else if (this.ball.dy * dy < 0)
                 this.sfx.wall();
 
@@ -159,6 +159,21 @@ Pong =
         this.leftPaddle.draw(canvas);
         this.rightPaddle.draw(canvas);
         this.isPlaying ? this.ball.draw(canvas) : this.menu.draw(canvas);
+        if (this.cfg.legend)
+            this.drawLegend(canvas);
+    },
+
+    drawLegend: function(canvas)
+    {
+        var offset = 0;
+        this.cfg.stats ? offset = 60 : offset = 0;
+
+        canvas.fillStyle = "Cyan";
+        canvas.fillText("Prediction Box Legend", 5, this.height - 35 - offset);
+        canvas.fillStyle = this.Colors.exact;
+        canvas.fillText("> Real Landing Zone", 5, this.height - 25 - offset);
+        canvas.fillStyle = this.Colors.guess;
+        canvas.fillText("> Predicted Landing Zone", 5, this.height - 15 - offset);
     },
 
     onkeydown: function(key) /**/
@@ -188,10 +203,13 @@ Pong =
     },
 
     showStats: function(on) { this.cfg.stats = on; },
-    showTrail: function(on) { this.cfg.footprints = on; this.ball.footprints = []; },
+    showTrail: function(on) { this.cfg.trails = on; this.ball.footprints = []; },
     showPredictions: function(on) { this.cfg.predictions = on; },
+    showLegend: function(on) { this.cfg.legend = on; },
     sfxEnable: function(on) { this.cfg.sfx = on; },
+    setPoint: function(point) { this.cfg.winpoint = point; },
 
+    // Menu handler. Displays the score and game text.
     Menu: /**/
     {
         initialize: function(pong) 
@@ -231,7 +249,6 @@ Pong =
                 this.audioAssets =
                 {
                     ping: Game.createAudio("sfx/ping.wav"),
-                    pong: Game.createAudio("sfx/pong.wav"),
                     wall: Game.createAudio("sfx/wall.wav"),
                     goal: Game.createAudio("sfx/goal.wav")
                 };
@@ -240,12 +257,11 @@ Pong =
 
         triggerSound: function(soundEffect)
         {
-            if (this.supportsAudio && this.game.cfg.sfx && this.files[soundEffect])
+            if (this.supportsAudio && this.game.cfg.sfx && this.audioAssets[soundEffect])
                 this.audioAssets[soundEffect].play();
         },
 
         ping: function() { this.triggerSound('ping'); },
-        pong: function() { this.triggerSound('pong'); },
         wall: function() { this.triggerSound('wall'); },
         goal: function() { this.triggerSound('goal'); }
     },    
@@ -335,31 +351,31 @@ Pong =
     Paddle: {
         //initialization for the paddle
         initialize: function(pong, rhs) {
-        this.pong   = pong;
-        this.width  = pong.cfg.paddleWidth;
-        this.height = pong.cfg.paddleHeight;
-        this.minY   = pong.cfg.wallWidth;
-        this.maxY   = pong.height - pong.cfg.wallWidth - this.height;
-        this.speed  = (this.maxY - this.minY) / pong.cfg.paddleSpeed;
-        this.setpos(rhs ? pong.width - this.width : 0, this.minY + (this.maxY - this.minY)/2);
-        this.setdir(0);
+            this.pong   = pong;
+            this.width  = pong.cfg.paddleWidth;
+            this.height = pong.cfg.paddleHeight;
+            this.minY   = pong.cfg.wallWidth;
+            this.maxY   = pong.height - pong.cfg.wallWidth - this.height;
+            this.speed  = (this.maxY - this.minY) / pong.cfg.paddleSpeed;
+            this.setpos(rhs ? pong.width - this.width - 10 : 10, this.minY + (this.maxY - this.minY)/2);
+            this.setdir(0);
         },
 
         //setting the paddle position
         setpos: function(x, y) {
-        this.x      = x;
-        this.y      = y;
-        this.left   = this.x;
-        this.right  = this.left + this.width;
-        this.top    = this.y;
-        this.bottom = this.y + this.height;
+            this.x      = x;
+            this.y      = y;
+            this.left   = this.x;
+            this.right  = this.left + this.width;
+            this.top    = this.y;
+            this.bottom = this.y + this.height;
         },
 
         //setting the paddle movement directions
         //since the paddle only moves up and down, the coordinates that will be changed is only y
         setdir: function(dy) {
-        this.up   = (dy < 0 ? -dy : 0);
-        this.down = (dy > 0 ?  dy : 0);
+            this.up   = (dy < 0 ? -dy : 0);
+            this.down = (dy > 0 ?  dy : 0);
         },
 
         //set the AI when there is a vacancy in the player (1P or 0P)
@@ -480,8 +496,10 @@ Pong =
 
         //draw the paddle object
         draw: function(canvas) {
-        canvas.fillStyle = Pong.Colors.walls;
+            canvas.fillStyle = Pong.Colors.walls;
             canvas.fillRect(this.x, this.y, this.width, this.height);
+            
+            // Prediction Overlay handler
             if (this.prediction && this.pong.cfg.predictions) {
                 canvas.strokeStyle = Pong.Colors.exact;
                 canvas.strokeRect(this.prediction.x - this.prediction.radius, this.prediction.exactY - this.prediction.radius, this.prediction.radius * 2, this.prediction.radius * 2);
@@ -533,20 +551,20 @@ Pong =
 
         //set the ball direction/movements
         setdir: function (dx, dy) {
-            this.dxChanged = ((this.dx < 0) != (dx < 0));//horizontal direction change on the ball
-            this.dyChanged = ((this.dy < 0) != (dy < 0));//vertical direction change on the ball
+            this.dxChanged = ((this.dx < 0) != (dx < 0)); //horizontal direction change on the ball
+            this.dyChanged = ((this.dy < 0) != (dy < 0)); //vertical direction change on the ball
             this.dx = dx;
             this.dy = dy;
         },
 
         //function for ball's trails
         trail: function () {
-            if (this.pong.cfg.footprints) {
+            if (this.pong.cfg.trails) {
                 if (!this.trailCount || this.dxChanged || this.dyChanged) {
                     //inserting the coordinate of the ball to the footprint
                     this.footprints.push({ x: this.x, y: this.y });
                     //if the footprint length has reached 300, remove the footprint one by one
-                    if (this.footprints.length > 100)
+                    if (this.footprints.length > 25)
                         this.footprints.shift();
                     //counter to print the footprints
                     this.trailCount = 5;
@@ -557,6 +575,7 @@ Pong =
                 }
             }
         },
+
         //updating the ball status (new position, speed, collision detection and direction)
         update: function(dt, leftPaddle, rightPaddle) {
             //determine the new position and speed of the ball
@@ -613,7 +632,7 @@ Pong =
             canvas.closePath();
         
             //drawing the footprints of the ball
-            if (this.pong.cfg.footprints) {
+            if (this.pong.cfg.trails) {
                 var maxTrail = this.footprints.length;
                 canvas.strokeStyle = Pong.Colors.trail;
                 for (var i = 0; i < maxTrail; i++) {

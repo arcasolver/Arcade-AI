@@ -100,7 +100,7 @@ Game =
   createAudio: function(src) {
     try {
       var audio = new Audio(src);
-      audio.volume = 0.1; 
+      audio.volume = 0.8; 
       return audio;
     } 
     catch (e) {
@@ -235,10 +235,13 @@ Game =
 
     drawStats: function(ctx) {
       if (this.cfg.stats) {
-        ctx.fillText("frame: "  + this.stats.count,         this.width - 100, this.height - 60);
-        ctx.fillText("fps: "    + this.stats.fps,           this.width - 100, this.height - 50);
-        ctx.fillText("update: " + this.stats.update + "ms", this.width - 100, this.height - 40);
-        ctx.fillText("draw: "   + this.stats.draw   + "ms", this.width - 100, this.height - 30);
+        ctx.fillStyle = "Cyan";
+        ctx.fillText("Render Engine Stats", 5, this.height - 55);
+        ctx.fillStyle = "White";
+        ctx.fillText("FPS: " + this.stats.fps, 5, this.height - 45);
+        ctx.fillText("Current Frame: " + this.stats.count, 5, this.height - 35);
+        ctx.fillText("Update Time: " + this.stats.update + "ms", 5, this.height - 25);
+        ctx.fillText("Draw Time: " + this.stats.draw + "ms", 5, this.height - 15);
       }
     },
 
@@ -247,8 +250,15 @@ Game =
       Game.addEvent(document, 'keyup',   this.onkeyup.bind(this));
     },
 
-    onkeydown: function(ev) { if (this.game.onkeydown) this.game.onkeydown(ev.keyCode); },
-    onkeyup:   function(ev) { if (this.game.onkeyup)   this.game.onkeyup(ev.keyCode);   },
+    onkeydown: function(ev) { 
+      if (this.game.onkeydown) 
+        this.game.onkeydown(ev.keyCode); 
+    },
+
+    onkeyup: function(ev) { 
+      if (this.game.onkeyup)   
+        this.game.onkeyup(ev.keyCode); 
+    },
 
     hideCursor: function() { this.canvas.style.cursor = 'none'; },
     showCursor: function() { this.canvas.style.cursor = 'auto'; },
