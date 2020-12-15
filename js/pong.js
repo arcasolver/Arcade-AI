@@ -11,14 +11,17 @@ Pong =
         ballSpeed: 4,
         ballAcceleration: 8,
         ballRad: 7,
-        stats: true
+        sound: true
     },
 
     Colors: 
     {
         courtWalls: 'white',
         ball: 'white',
-        text: 'white'
+        text: 'white',
+        trail: 'grey',
+        guess: 'magenta',
+        exact: 'lime'
     },
 
     Assets: /**/
@@ -28,23 +31,45 @@ Pong =
         "img/winner.png"
     ],
 
+    Levels:
+    [
+        {aiReaction: 0.2, aiError:  40}, // 0:  ai is losing by 8
+        {aiReaction: 0.3, aiError:  50}, // 1:  ai is losing by 7
+        {aiReaction: 0.4, aiError:  60}, // 2:  ai is losing by 6
+        {aiReaction: 0.5, aiError:  70}, // 3:  ai is losing by 5
+        {aiReaction: 0.6, aiError:  80}, // 4:  ai is losing by 4
+        {aiReaction: 0.7, aiError:  90}, // 5:  ai is losing by 3
+        {aiReaction: 0.8, aiError: 100}, // 6:  ai is losing by 2
+        {aiReaction: 0.9, aiError: 110}, // 7:  ai is losing by 1
+        {aiReaction: 1.0, aiError: 120}, // 8:  tie
+        {aiReaction: 1.1, aiError: 130}, // 9:  ai is winning by 1
+        {aiReaction: 1.2, aiError: 140}, // 10: ai is winning by 2
+        {aiReaction: 1.3, aiError: 150}, // 11: ai is winning by 3
+        {aiReaction: 1.4, aiError: 160}, // 12: ai is winning by 4
+        {aiReaction: 1.5, aiError: 170}, // 13: ai is winning by 5
+        {aiReaction: 1.6, aiError: 180}, // 14: ai is winning by 6
+        {aiReaction: 1.7, aiError: 190}, // 15: ai is winning by 7
+        {aiReaction: 1.8, aiError: 200}  // 16: ai is winning by 8
+    ],
+
     /* Pong funcitons */
     initialize: function(runner, cfg) /**/
     {
         Game.loadImages(Pong.Assets, function(assets) 
         {
-            this.cfg         = cfg;
-            this.runner      = runner;
-            this.width       = runner.width;
-            this.height      = runner.height;
-            this.assets      = assets;
+            this.cfg = cfg;
+            this.runner = runner;
+            this.width = runner.width;
+            this.height = runner.height;
+            this.assets = assets;
             this.isPlaying   = false; //
-            this.score       = [0, 0]; //
-            this.menu        = Object.construct(Pong.Menu,   this);
-            this.court       = Object.construct(Pong.Court,  this);
-            this.leftPaddle  = Object.construct(Pong.Paddle, this);
+            this.score = [0, 0]; //
+            this.menu = Object.construct(Pong.Menu, this);
+            this.court = Object.construct(Pong.Court, this);
+            this.leftPaddle = Object.construct(Pong.Paddle, this);
             this.rightPaddle = Object.construct(Pong.Paddle, this, true);
-            this.ball        = Object.construct(Pong.Ball,   this);
+            this.ball = Object.construct(Pong.Ball, this);
+            this.sfx = Object.construct(Pong.SFX, this);
             this.runner.start();
         }.bind(this));
     },
@@ -59,6 +84,8 @@ Pong =
         {
             this.score = [0, 0];
             this.isPlaying = true;
+            this.leftPaddle.setAI(pNum < 1, this.level(0));
+            this.rightPaddle.setAI(pNum < 2, this.level(1));
             this.ball.reset();
         }
     },
@@ -66,8 +93,14 @@ Pong =
     stop: function(dialog) /**/
     {
         if (this.isPlaying)
+        {
             if (!dialog || this.runner.confirm('Quit game?'))
+            {
                 this.isPlaying = false;
+                this.leftPaddle.setAI(false);
+                this.rightPaddle.setAI(false);
+            }
+        }
     },
 
     level: function(player)
@@ -78,6 +111,7 @@ Pong =
     goal: function(player) /**/
     {
         this.score[player] += 1;
+        this.sfx.goal();
         if (this.score[player] == 1)
         {
             this.menu.declareWinner(player);
@@ -86,8 +120,8 @@ Pong =
         else
         {
             this.ball.reset(player);
-            /* this.leftPaddle.setLevel(this.level(0));
-            this.rightPaddle.setLevel(this.level(1)); */
+            this.leftPaddle.setLevel(this.level(0));
+            this.rightPaddle.setLevel(this.level(1));
         }
     },
 
@@ -103,6 +137,15 @@ Pong =
             
             this.ball.update(dt, this.leftPaddle, this.rightPaddle);
 
+            /* Sound event handler */
+            if (this.ball.dx < 0 && dx > 0)
+                this.sfx.ping();
+            else if (this.ball.dx > 0 && dx < 0)
+                this.sfx.pong();
+            else if (this.ball.dy * dy < 0)
+                this.sfx.wall();
+
+            /* Goal Checker */
             if (this.ball.left > this.width)
                 this.goal(0);
             else if (this.ball.right < 0)
@@ -125,11 +168,11 @@ Pong =
             case Game.KEY.ZERO: this.startAI(); break; //
             case Game.KEY.ONE: this.startOne(); break; //
             case Game.KEY.TWO: this.startTwo(); break; //
-            case Game.KEY.ESC: this.stop(true); break;
-            case Game.KEY.Q: this.leftPaddle.moveUp(); break;
-            case Game.KEY.A: this.leftPaddle.moveDown(); break;
-            case Game.KEY.P: this.rightPaddle.moveUp(); break;
-            case Game.KEY.L: this.rightPaddle.moveDown(); break;
+            case Game.KEY.ESC: this.stop(true); break; //
+            case Game.KEY.Q: if (!this.leftPaddle.auto) this.leftPaddle.moveUp(); break;
+            case Game.KEY.A: if (!this.leftPaddle.auto) this.leftPaddle.moveDown(); break;
+            case Game.KEY.P: if (!this.rightPaddle.auto) this.rightPaddle.moveUp(); break;
+            case Game.KEY.L: if (!this.rightPaddle.auto) this.rightPaddle.moveDown(); break;
         }
     },
 
@@ -137,12 +180,17 @@ Pong =
     {
         switch(keyCode) 
         {
-            case Game.KEY.Q: this.leftPaddle.stopMovingUp(); break;
-            case Game.KEY.A: this.leftPaddle.stopMovingDown(); break;
-            case Game.KEY.P: this.rightPaddle.stopMovingUp(); break;
-            case Game.KEY.L: this.rightPaddle.stopMovingDown(); break;
+            case Game.KEY.Q: if (!this.leftPaddle.auto) this.leftPaddle.stopMovingUp(); break;
+            case Game.KEY.A: if (!this.leftPaddle.auto) this.leftPaddle.stopMovingDown(); break;
+            case Game.KEY.P: if (!this.rightPaddle.auto) this.rightPaddle.stopMovingUp(); break;
+            case Game.KEY.L: if (!this.rightPaddle.auto) this.rightPaddle.stopMovingDown(); break;
         }
     },
+
+    showStats: function(on) { this.cfg.stats = on; },
+    showTrail: function(on) { this.cfg.footprints = on; this.ball.footprints = []; },
+    showPredictions: function(on) { this.cfg.predictions = on; },
+    sfxEnable: function(on) { this.cfg.sfx = on; },
 
     Menu: /**/
     {
@@ -170,9 +218,41 @@ Pong =
         }
     },
 
+    // Game sound effects handler
+    SFX:
+    {
+        initialize: function(pong)
+        {
+            this.game = pong;
+            this.supportsAudio = Game.ua.hasAudio; /* Might change UA */
+
+            if (this.supportsAudio)
+            {
+                this.audioAssets =
+                {
+                    ping: Game.createAudio("sfx/ping.wav"),
+                    pong: Game.createAudio("sfx/pong.wav"),
+                    wall: Game.createAudio("sfx/wall.wav"),
+                    goal: Game.createAudio("sfx/goal.wav")
+                };
+            }
+        },
+
+        triggerSound: function(soundEffect)
+        {
+            if (this.supportsAudio && this.game.cfg.sfx && this.files[soundEffect])
+                this.audioAssets[soundEffect].play();
+        },
+
+        ping: function() { this.triggerSound('ping'); },
+        pong: function() { this.triggerSound('pong'); },
+        wall: function() { this.triggerSound('wall'); },
+        goal: function() { this.triggerSound('goal'); }
+    },    
+
     /* Pong game objects */
     // Game court - Including the score panel
-    Court:
+    Court: /**/
     {
         initialize: function(pong)
         {
@@ -198,8 +278,8 @@ Pong =
             var scoreX = 3*th;
             var scoreY = 4*th;
             var scoreModifier = 0.5;
-            this.leftScore = {x: scoreModifier + x/2 - 1.5*th - scoreX, y: 2*th, widht: scoreX, height: scoreY};
-            this.rightScore = {x: scoreModifier + x/2 - 1.5*th, y: 2*th, widht: scoreX, height: scoreY};
+            this.leftScore = {x: scoreModifier + x/2 - 1.5*th - scoreX, y: 2*th, width: scoreX, height: scoreY};
+            this.rightScore = {x: scoreModifier + x/2 - 1.5*th + scoreX, y: 2*th, width: scoreX, height: scoreY};
         },
 
         // Seven segment binary table
@@ -217,26 +297,26 @@ Pong =
             [1, 1, 1, 1, 0, 1, 0]  // 9
         ],
 
-        sevenSegment: function(canvas, numval, x, y, width, height)
+        sevenSegment: function(canvas, numval, x, y, w, h)
         {
-            canvas.fillStyle = Pong.Colors.text;
-            var digitWidth = digitHeight = this.th*4/5;
-            var segments = Pong.Court.CharacterMap[numval];
-
-            if (segments[0])
-                canvas.fillRect(x, y, width, digitHeight);
-            if (segments[1])
-                canvas.fillRect(x, y, digitWidth, height/2);
-            if (segments[2])
-                canvas.fillRect(x + width - digitWidth, y, digitWidth, height/2);
-            if (segments[3])
-                canvas.fillRect(x, y + height/2 - digitHeight/2, width, digitHeight);
-            if (segments[4])
-                canvas.fillRect(x, y + height/2, digitWidth, height/2);
-            if (segments[5])
-                canvas.fillRect(x + width - digitWidth, y + height/2, digitWidth, height/2);
-            if (segments[6])
-                canvas.fillRect(x, y + height - digitHeight, width, digitHeight);
+			canvas.fillStyle = Pong.Colors.score;
+			var dw = dh = this.th*4/5;
+			var segments = Pong.Court.CharacterMap[numval];
+			
+			if (segments[0])
+				canvas.fillRect(x, y, w, dh);
+			if (segments[1])
+				canvas.fillRect(x, y, dw, h/2);
+			if (segments[2])
+				canvas.fillRect(x+w-dw, y, dw, h/2);
+			if (segments[3])
+				canvas.fillRect(x, y + h/2 - dh/2, w, dh);
+			if (segments[4])
+				canvas.fillRect(x, y + h/2, dw, h/2);
+			if (segments[5])
+				canvas.fillRect(x+w-dw, y + h/2, dw, h/2);
+			if (segments[6])
+				canvas.fillRect(x, y+h-dh, w, dh);
         },
 
         draw: function(canvas, p1score, p2score)
