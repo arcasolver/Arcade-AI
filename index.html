@@ -59,11 +59,11 @@
 
             <div class="settings">
                 <label for="stats">Show Statistics: </label>
-                <input type="checkbox" id="stats" checked>
+                <input type="checkbox" id="stats">
             </div>
 
             <div class="settings">
-                <label for="trail">Display ball trails: </label>
+                <label for="trail">Show Ball Trails: </label>
                 <input type="checkbox" id="trail">
             </div>
 
@@ -81,7 +81,7 @@
 
         <canvas id="game" style="background-color: #0047b3; opacity: 0.95;">
             <div id="unsupported">
-            Sorry, your browser does not support the &lt;canvas&gt; element which is erquired by this game.
+                Sorry, your browser does not support the &lt;canvas&gt; element which is erquired by this game.
             </div>
         </canvas>
 
@@ -110,7 +110,7 @@
                 Game.addEvent(trail, "change", function() { pong.showTrail(trail.checked); });
                 Game.addEvent(predoverlay, "change", function() { pong.showPredictions(predoverlay.checked); });
                 Game.addEvent(legendoverlay, "change", function() { pong.showLegend(legendoverlay.checked); });
-                Game.addEvent(winpoint, "change", function() { pong.showLegend(winpoint.value); });
+                Game.addEvent(winpoint, "change", function() { pong.setPoint(winpoint.value); });
             });
         </script>
         <script>
