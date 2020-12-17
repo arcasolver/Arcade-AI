@@ -206,7 +206,7 @@ Pong =
 
     showStats: function(enabled) { this.cfg.stats = enabled; },
     showTrail: function(enabled) { this.cfg.trails = enabled; this.ball.footprints = []; },
-    showPredictions: function(on) { this.cfg.predictions = enabled; },
+    showPredictions: function(enabled) { this.cfg.predictions = enabled; },
     showLegend: function(enabled) { this.cfg.legend = enabled; },
     sfxEnable: function(enabled) { this.cfg.sfx = enabled; },
     setPoint: function(point) { this.cfg.winpoint = point; },
