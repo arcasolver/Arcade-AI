@@ -5,7 +5,7 @@
         <title>Pong with AI</title>
         <meta http-equiv="Content-Type" content="text/html"; charset="utf-8"/>
         <link rel="preconnect" href="https://fonts.gstatic.com">
-<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"> 
+        <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"> 
         <link href="css/pong.css" media="screen" rel="stylesheet" type="text/css" /> 
     </head>
 
@@ -17,10 +17,10 @@
         </audio>
 
         <div id="sidebar">
-            <h1>Welcome to Pong!</h1>
+            <h1>Welcome to Arcade AI Pong!</h1>
 
             <div id="desc">
-                <h2>Game Modes</h2>
+                <br><h2>Game Modes</h2>
                 <p>
                     Press <b>0</b> for AI autoplay mode.<br>
                     Press <b>1</b> for singleplayer mode.<br>
@@ -113,6 +113,7 @@
                 Game.addEvent(winpoint, "change", function() { pong.setPoint(winpoint.value); });
             });
         </script>
+
         <script>
             var audio = document.getElementById("bgm");
             var bgm = document.getElementById("bgmToggle");
