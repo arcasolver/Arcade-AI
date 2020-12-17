@@ -7,7 +7,7 @@ Pong =
         wallWidth: 10,
         paddleWidth: 12,
         paddleHeight: 64,
-        paddleSpeed: 2,
+        paddleSpeed: 1.5,
         ballSpeed: 4,
         ballAcceleration: 8,
         ballRad: 7,
@@ -33,23 +33,23 @@ Pong =
 
     Levels:
     [
-        {aiReaction: 0.2, aiError:  40}, // 0:  ai is losing by 8
-        {aiReaction: 0.3, aiError:  50}, // 1:  ai is losing by 7
-        {aiReaction: 0.4, aiError:  60}, // 2:  ai is losing by 6
-        {aiReaction: 0.5, aiError:  70}, // 3:  ai is losing by 5
-        {aiReaction: 0.6, aiError:  80}, // 4:  ai is losing by 4
-        {aiReaction: 0.7, aiError:  90}, // 5:  ai is losing by 3
-        {aiReaction: 0.8, aiError: 100}, // 6:  ai is losing by 2
-        {aiReaction: 0.9, aiError: 110}, // 7:  ai is losing by 1
-        {aiReaction: 1.0, aiError: 120}, // 8:  tie
-        {aiReaction: 1.1, aiError: 130}, // 9:  ai is winning by 1
-        {aiReaction: 1.2, aiError: 140}, // 10: ai is winning by 2
-        {aiReaction: 1.3, aiError: 150}, // 11: ai is winning by 3
-        {aiReaction: 1.4, aiError: 160}, // 12: ai is winning by 4
-        {aiReaction: 1.5, aiError: 170}, // 13: ai is winning by 5
-        {aiReaction: 1.6, aiError: 180}, // 14: ai is winning by 6
-        {aiReaction: 1.7, aiError: 190}, // 15: ai is winning by 7
-        {aiReaction: 1.8, aiError: 200}  // 16: ai is winning by 8
+        {aiReactionTime: 0.2, aiMaxError:  20}, // ai losing by 7 points
+        {aiReactionTime: 0.4, aiMaxError:  20}, // ai losing by 6 points
+        {aiReactionTime: 0.5, aiMaxError:  30}, // ai losing by 5 points
+        {aiReactionTime: 0.6, aiMaxError:  40}, // ai losing by 4 points
+        {aiReactionTime: 0.7, aiMaxError:  50}, // ai losing by 8 points
+        {aiReactionTime: 0.8, aiMaxError:  60}, // ai losing by 3 points
+        {aiReactionTime: 0.9, aiMaxError:  70}, // ai losing by 2 points
+        {aiReactionTime: 0.9, aiMaxError:  80}, // ai losing by 1 points
+        {aiReactionTime: 1.0, aiMaxError: 100}, // tie
+        {aiReactionTime: 1.1, aiMaxError: 120}, // ai leading by 1 points
+        {aiReactionTime: 1.2, aiMaxError: 140}, // ai leading by 2 points
+        {aiReactionTime: 1.3, aiMaxError: 160}, // ai leading by 3 points
+        {aiReactionTime: 1.4, aiMaxError: 180}, // ai leading by 4 points
+        {aiReactionTime: 1.5, aiMaxError: 180}, // ai leading by 5 points
+        {aiReactionTime: 1.6, aiMaxError: 200}, // ai leading by 6 points
+        {aiReactionTime: 1.8, aiMaxError: 200}, // ai leading by 7 points
+        {aiReactionTime: 2.0, aiMaxError: 200}  // ai leading by 8 points
     ],
 
     /* Pong funcitons */
@@ -87,6 +87,7 @@ Pong =
             this.leftPaddle.setAI(pNum < 1, this.level(0));
             this.rightPaddle.setAI(pNum < 2, this.level(1));
             this.ball.reset();
+            this.sfx.start();
         }
     },
 
@@ -112,10 +113,11 @@ Pong =
     {
         this.score[player] += 1;
         this.sfx.goal();
-        if (this.score[player] == this.cfg.winpoint)
+        if (this.score[player] >= this.cfg.winpoint)
         {
             this.menu.declareWinner(player);
             this.stop();
+            this.sfx.win();
         }
         else
         {
@@ -202,11 +204,11 @@ Pong =
         }
     },
 
-    showStats: function(on) { this.cfg.stats = on; },
-    showTrail: function(on) { this.cfg.trails = on; this.ball.footprints = []; },
-    showPredictions: function(on) { this.cfg.predictions = on; },
-    showLegend: function(on) { this.cfg.legend = on; },
-    sfxEnable: function(on) { this.cfg.sfx = on; },
+    showStats: function(enabled) { this.cfg.stats = enabled; },
+    showTrail: function(enabled) { this.cfg.trails = enabled; this.ball.footprints = []; },
+    showPredictions: function(on) { this.cfg.predictions = enabled; },
+    showLegend: function(enabled) { this.cfg.legend = enabled; },
+    sfxEnable: function(enabled) { this.cfg.sfx = enabled; },
     setPoint: function(point) { this.cfg.winpoint = point; },
 
     // Menu handler. Displays the score and game text.
@@ -250,7 +252,9 @@ Pong =
                 {
                     ping: Game.createAudio("sfx/ping.wav"),
                     wall: Game.createAudio("sfx/wall.wav"),
-                    goal: Game.createAudio("sfx/goal.wav")
+                    goal: Game.createAudio("sfx/goal.wav"),
+                    start: Game.createAudio("sfx/start.wav"),
+                    win: Game.createAudio("sfx/win.wav")
                 };
             }
         },
@@ -263,7 +267,9 @@ Pong =
 
         ping: function() { this.triggerSound('ping'); },
         wall: function() { this.triggerSound('wall'); },
-        goal: function() { this.triggerSound('goal'); }
+        goal: function() { this.triggerSound('goal'); },
+        start: function() { this.triggerSound('start'); },
+        win: function() { this.triggerSound('win'); }
     },    
 
     /* Pong game objects */
@@ -454,7 +460,7 @@ Pong =
         //prediction function for the CPU
         predict: function (ball, dt) {
             //re-predict the ball position when the ball has changed its direction, or it has not predict the position for some interval of time
-            if (this.prediction && ((this.prediction.dx * ball.dx) > 0) && ((this.prediction.dy * ball.dy) > 0) && (this.prediction.last < this.level.aiReaction)) {
+            if (this.prediction && ((this.prediction.dx * ball.dx) > 0) && ((this.prediction.dy * ball.dy) > 0) && (this.prediction.last < this.level.aiReactionTime)) {
                 this.prediction.last += dt;
                 return;
             }
@@ -489,7 +495,7 @@ Pong =
                 this.prediction.exactX = this.prediction.x;
                 this.prediction.exactY = this.prediction.y;
                 var ball_closeness = (ball.dx < 0 ? ball.x - this.right : this.left - ball.x) / this.pong.width;
-                var errorGuess = this.level.aiError * ball_closeness;
+                var errorGuess = this.level.aiMaxError * ball_closeness;
                 this.prediction.y = this.prediction.y + Game.random(-errorGuess, errorGuess);
             }
         },
