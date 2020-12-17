@@ -8,9 +8,9 @@ Pong =
         paddleWidth: 12,
         paddleHeight: 64,
         paddleSpeed: 1.5,
-        ballSpeed: 4,
-        ballAcceleration: 8,
-        ballRad: 7,
+        ballSpeed: 3.5,
+        ballAcceleration: 10,
+        ballRad: 8,
         sound: true
     },
 
@@ -33,23 +33,23 @@ Pong =
 
     Levels:
     [
-        {aiReactionTime: 0.2, aiMaxError:  20}, // ai losing by 7 points
-        {aiReactionTime: 0.4, aiMaxError:  20}, // ai losing by 6 points
-        {aiReactionTime: 0.5, aiMaxError:  30}, // ai losing by 5 points
-        {aiReactionTime: 0.6, aiMaxError:  40}, // ai losing by 4 points
-        {aiReactionTime: 0.7, aiMaxError:  50}, // ai losing by 8 points
-        {aiReactionTime: 0.8, aiMaxError:  60}, // ai losing by 3 points
-        {aiReactionTime: 0.9, aiMaxError:  70}, // ai losing by 2 points
-        {aiReactionTime: 0.9, aiMaxError:  80}, // ai losing by 1 points
+        {aiReactionTime: 0.1, aiMaxError:  10}, // losing by 8 points
+        {aiReactionTime: 0.3, aiMaxError:  10}, // losing by 7 points
+        {aiReactionTime: 0.4, aiMaxError:  15}, // losing by 6 points
+        {aiReactionTime: 0.5, aiMaxError:  20}, // losing by 5 points
+        {aiReactionTime: 0.6, aiMaxError:  25}, // losing by 4 points
+        {aiReactionTime: 0.7, aiMaxError:  30}, // losing by 3 points
+        {aiReactionTime: 0.8, aiMaxError:  35}, // losing by 2 points
+        {aiReactionTime: 0.9, aiMaxError:  40}, // losing by 1 points
         {aiReactionTime: 1.0, aiMaxError: 100}, // tie
-        {aiReactionTime: 1.1, aiMaxError: 120}, // ai leading by 1 points
-        {aiReactionTime: 1.2, aiMaxError: 140}, // ai leading by 2 points
-        {aiReactionTime: 1.3, aiMaxError: 160}, // ai leading by 3 points
-        {aiReactionTime: 1.4, aiMaxError: 180}, // ai leading by 4 points
-        {aiReactionTime: 1.5, aiMaxError: 180}, // ai leading by 5 points
-        {aiReactionTime: 1.6, aiMaxError: 200}, // ai leading by 6 points
-        {aiReactionTime: 1.8, aiMaxError: 200}, // ai leading by 7 points
-        {aiReactionTime: 2.0, aiMaxError: 200}  // ai leading by 8 points
+        {aiReactionTime: 1.1, aiMaxError: 120}, // leading by 1 points
+        {aiReactionTime: 1.2, aiMaxError: 145}, // leading by 2 points
+        {aiReactionTime: 1.3, aiMaxError: 150}, // leading by 3 points
+        {aiReactionTime: 1.4, aiMaxError: 160}, // leading by 4 points
+        {aiReactionTime: 1.5, aiMaxError: 165}, // leading by 5 points
+        {aiReactionTime: 1.6, aiMaxError: 170}, // leading by 6 points
+        {aiReactionTime: 1.8, aiMaxError: 175}, // leading by 7 points
+        {aiReactionTime: 2.0, aiMaxError: 180}  // leading by 8 points
     ],
 
     /* Pong funcitons */
@@ -86,7 +86,7 @@ Pong =
             this.isPlaying = true;
             this.leftPaddle.setAI(pNum < 1, this.level(0));
             this.rightPaddle.setAI(pNum < 2, this.level(1));
-            this.ball.reset();
+            this.ball.reset(Math.floor(Math.random() * 2));
             this.sfx.start();
         }
     },
@@ -537,7 +537,6 @@ Pong =
         },
 
         //reset the ball speed and position during the beginning of the game or when one of the paddle is able to score a point
-        //in the beginning, the ball will always starts at left side player (player = 0) and the direction is approaching right side player (player = 1)
         //if the player in the right hand side scores a ball, the ball will start in the right position
         reset: function(player) {
             this.footprints = [];
