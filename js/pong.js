@@ -33,23 +33,23 @@ Pong =
 
     Levels:
     [
-        {aiReactionTime: 0.1, aiMaxError:  10}, // losing by 8 points
-        {aiReactionTime: 0.3, aiMaxError:  10}, // losing by 7 points
-        {aiReactionTime: 0.4, aiMaxError:  15}, // losing by 6 points
-        {aiReactionTime: 0.5, aiMaxError:  20}, // losing by 5 points
-        {aiReactionTime: 0.6, aiMaxError:  25}, // losing by 4 points
-        {aiReactionTime: 0.7, aiMaxError:  30}, // losing by 3 points
-        {aiReactionTime: 0.8, aiMaxError:  35}, // losing by 2 points
-        {aiReactionTime: 0.9, aiMaxError:  40}, // losing by 1 points
+        {aiReactionTime: 0.1, aiMaxError:  19}, // losing by 8 points
+        {aiReactionTime: 0.3, aiMaxError:  36}, // losing by 7 points
+        {aiReactionTime: 0.4, aiMaxError:  51}, // losing by 6 points
+        {aiReactionTime: 0.5, aiMaxError:  64}, // losing by 5 points
+        {aiReactionTime: 0.6, aiMaxError:  75}, // losing by 4 points
+        {aiReactionTime: 0.7, aiMaxError:  84}, // losing by 3 points
+        {aiReactionTime: 0.8, aiMaxError:  81}, // losing by 2 points
+        {aiReactionTime: 0.9, aiMaxError:  96}, // losing by 1 points
         {aiReactionTime: 1.0, aiMaxError: 100}, // tie
-        {aiReactionTime: 1.1, aiMaxError: 120}, // leading by 1 points
-        {aiReactionTime: 1.2, aiMaxError: 145}, // leading by 2 points
-        {aiReactionTime: 1.3, aiMaxError: 150}, // leading by 3 points
-        {aiReactionTime: 1.4, aiMaxError: 160}, // leading by 4 points
-        {aiReactionTime: 1.5, aiMaxError: 165}, // leading by 5 points
-        {aiReactionTime: 1.6, aiMaxError: 170}, // leading by 6 points
-        {aiReactionTime: 1.8, aiMaxError: 175}, // leading by 7 points
-        {aiReactionTime: 2.0, aiMaxError: 180}  // leading by 8 points
+        {aiReactionTime: 1.1, aiMaxError: 104}, // leading by 1 points
+        {aiReactionTime: 1.2, aiMaxError: 109}, // leading by 2 points
+        {aiReactionTime: 1.3, aiMaxError: 116}, // leading by 3 points
+        {aiReactionTime: 1.4, aiMaxError: 125}, // leading by 4 points
+        {aiReactionTime: 1.5, aiMaxError: 136}, // leading by 5 points
+        {aiReactionTime: 1.6, aiMaxError: 149}, // leading by 6 points
+        {aiReactionTime: 1.8, aiMaxError: 164}, // leading by 7 points
+        {aiReactionTime: 2.0, aiMaxError: 181}  // leading by 8 points
     ],
 
     /* Pong funcitons */
