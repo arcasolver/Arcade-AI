@@ -26,9 +26,10 @@ Pong =
 
     Assets: /**/
     [
-        "img/press1.png",
-        "img/press2.png",
-        "img/winner.png"
+        "img/leftMenu.png",
+        "img/rightMenu.png",
+        "img/p1win.png",
+        "img/p2win.png"
     ],
 
     Levels:
@@ -62,7 +63,7 @@ Pong =
             this.width = runner.width;
             this.height = runner.height;
             this.assets = assets;
-            this.isPlaying   = false; //
+            this.isPlaying = false; //
             this.score = [0, 0]; //
             this.menu = Object.construct(Pong.Menu, this);
             this.court = Object.construct(Pong.Court, this);
@@ -113,6 +114,7 @@ Pong =
     {
         this.score[player] += 1;
         this.sfx.goal();
+        
         if (this.score[player] >= this.cfg.winpoint)
         {
             this.menu.declareWinner(player);
@@ -157,9 +159,11 @@ Pong =
 
     draw: function(canvas) /**/
     {
-        this.court.draw(canvas, this.score[0], this.score[1]);
+        this.court.draw(canvas, this.score[0], this.score[1], this.isPlaying);
+
         this.leftPaddle.draw(canvas);
         this.rightPaddle.draw(canvas);
+        
         this.isPlaying ? this.ball.draw(canvas) : this.menu.draw(canvas);
         if (this.cfg.legend)
             this.drawLegend(canvas);
@@ -216,13 +220,14 @@ Pong =
     {
         initialize: function(pong) 
         {
-            var leftMenu = pong.assets["img/press1.png"];
-            var rightMenu = pong.assets["img/press2.png"];
-            var winText = pong.assets["img/winner.png"];
+            var leftMenu = pong.assets["img/leftMenu.png"];
+            var rightMenu = pong.assets["img/rightMenu.png"];
+            var leftWinner = pong.assets["img/p1win.png"];
+            var rightWinner = pong.assets["img/p2win.png"];
             this.leftMenu = { assets: leftMenu, x: 40, y: pong.cfg.wallWidth + 10};
             this.rightMenu = { assets: rightMenu, x: (pong.width - rightMenu.width - 40), y: pong.cfg.wallWidth + 10 };
-            this.leftWin = { assets: winText, x: (pong.width/4) - winText.width/2, y: pong.height/2 - winText.height/2 };
-            this.rightWin = { assets: winText, x: (3*pong.width/4) - winText.width/2, y: pong.height/2 - winText.height/2 };
+            this.leftWin = { assets: leftWinner, x: (pong.width/4) - leftWinner.width/2, y: pong.height/2 - leftWinner.height/2 };
+            this.rightWin = { assets: rightWinner, x: (3*pong.width/4) - rightWinner.width/2, y: pong.height/2 - rightWinner.height/2 };
         },
 
         declareWinner: function(pNum) { this.winner = pNum; },
@@ -288,7 +293,9 @@ Pong =
             this.courtWalls = [];
             this.courtWalls.push({x: 0, y: 0, width: x, height: th}) // Draw top walls
             this.courtWalls.push({x: 0, y: y-th, width: x, height: th}) // Draw bottom walls
-            this.courtWalls.push({x: (x/2) - (th/2), y: 0, width: th, height: y}); // Draw middle line
+            this.courtWalls.push({x: (x/2) - 3, y: 0, width: 6, height: y}); // Draw middle line
+            this.courtWalls.push({x: 0, y: 0, width: 3, height: y}); // Draw left line
+            this.courtWalls.push({x: x-3, y: 0, width: 3, height: y}); // Draw right line
             
             // Score panel properties
             var scoreX = 3*th;
@@ -335,16 +342,23 @@ Pong =
 				canvas.fillRect(x, y+h-dh, w, dh);
         },
 
-        draw: function(canvas, p1score, p2score)
+        draw: function(canvas, p1score, p2score, playing)
         {
-            canvas.fillStyle = Pong.Colors.courtWalls;
+            if (!playing)
+                canvas.fillStyle = 'red';
+            else
+                canvas.fillStyle = 'lime';
 
-            for (var i = 0; i < this.courtWalls.length; i++)
+            for (var i = 3; i < 5; i++)
+                canvas.fillRect(this.courtWalls[i].x, this.courtWalls[i].y, this.courtWalls[i].width, this.courtWalls[i].height);
+            
+            canvas.fillStyle = Pong.Colors.courtWalls;
+            for (var i = 0; i < 3; i++)
                 canvas.fillRect(this.courtWalls[i].x, this.courtWalls[i].y, this.courtWalls[i].width, this.courtWalls[i].height);
             
             this.sevenSegment(canvas, p1score, this.leftScore.x, this.leftScore.y, this.leftScore.width, this.leftScore.height);
             this.sevenSegment(canvas, p2score, this.rightScore.x, this.rightScore.y, this.rightScore.width, this.rightScore.height);
-        }
+        },
     },
 
     //Game Paddle - To hit the ball in the Pong game
@@ -357,7 +371,7 @@ Pong =
             this.minY   = pong.cfg.wallWidth;
             this.maxY   = pong.height - pong.cfg.wallWidth - this.height;
             this.speed  = (this.maxY - this.minY) / pong.cfg.paddleSpeed;
-            this.setpos(rhs ? pong.width - this.width - 10 : 10, this.minY + (this.maxY - this.minY)/2);
+            this.setpos(rhs ? pong.width - this.width - 20 : 20, this.minY + (this.maxY - this.minY)/2);
             this.setdir(0);
         },
 
