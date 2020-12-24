@@ -219,10 +219,10 @@ Pong =
             var leftMenu = pong.assets["img/press1.png"];
             var rightMenu = pong.assets["img/press2.png"];
             var winText = pong.assets["img/winner.png"];
-            this.leftMenu = { assets: leftMenu, x: 10, y: pong.cfg.wallWidth };
-            this.rightMenu = { assets: rightMenu, x: (pong.width - rightMenu.width - 10), y: pong.cfg.wallWidth };
-            this.leftWin = { assets: winText, x: (pong.width/2) - winText.width - pong.cfg.wallWidth, y: 6 * pong.cfg.wallWidth };
-            this.rightWin = { assets: winText, x: (pong.width/2) + pong.cfg.wallWidth, y: 6 * pong.cfg.wallWidth };
+            this.leftMenu = { assets: leftMenu, x: 40, y: pong.cfg.wallWidth + 10};
+            this.rightMenu = { assets: rightMenu, x: (pong.width - rightMenu.width - 40), y: pong.cfg.wallWidth + 10 };
+            this.leftWin = { assets: winText, x: (pong.width/4) - winText.width/2, y: pong.height/2 - winText.height/2 };
+            this.rightWin = { assets: winText, x: (3*pong.width/4) - winText.width/2, y: pong.height/2 - winText.height/2 };
         },
 
         declareWinner: function(pNum) { this.winner = pNum; },
@@ -288,13 +288,7 @@ Pong =
             this.courtWalls = [];
             this.courtWalls.push({x: 0, y: 0, width: x, height: th}) // Draw top walls
             this.courtWalls.push({x: 0, y: y-th, width: x, height: th}) // Draw bottom walls
-            
-            var maxLen = (y/(th*2));
-
-            for(var i = 0 ; i < maxLen ; i++) // draw dashed halfway line
-            {
-                this.courtWalls.push({x: (x/2) - (th/2), y: (th/2) + (th*2*i), width: th, height: th});
-            }
+            this.courtWalls.push({x: (x/2) - (th/2), y: 0, width: th, height: y}); // Draw middle line
             
             // Score panel properties
             var scoreX = 3*th;
@@ -471,13 +465,17 @@ Pong =
                 var top = this.minY + ball.radius;
                 var bottom = this.maxY + this.height - ball.radius;
 
-                //repeatedly predict until the ball has reached the paddle's side
+                // While the ball is out of the play court
                 while ((pt.y < top) || (pt.y > bottom)) {
                     if (pt.y < top) {
-                        pt.y = top + (top - pt.y);//bounce the prediction to the top
+                        // If the ball exceeds the top wall, bounce the ball and
+                        // calculate the new y-coordinate after bouncing
+                        pt.y = top + (top - pt.y);
                     }
                     else if (pt.y > bottom) {
-                        pt.y = top + (bottom - top) - (pt.y - bottom)//bounce the prediction to the bottom
+                        // If the ball exceeds the bottom wall, bounce the ball and
+                        // calculate the new y-coordinate after bouncing
+                        pt.y = top + (bottom - top) - (pt.y - bottom);
                     }
                 }
                 this.prediction = pt;
